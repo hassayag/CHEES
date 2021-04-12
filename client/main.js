@@ -19,15 +19,24 @@ const initState = [
     ["r", " ", " ", " ", " ", " ", "P", "R"]
 ];
 var boardState = initState;
+var board_in = [];
+var board_out = [];
 var i, j;
 var valSelec = ' ';
+var val;
+var val_hold;
 var lastI;
 var lastJ;
 var X;
 var Y;
 var movesTot;
+var holdState = initState;
+var mi;
+var mj;
+var moveListi = [];
+var moveListj = [];
 var whiteTurn = true;
-var kingCoord;
+var kingCoord = [0,0]
 var displayMoveArray = [];
 //&#9817
 var PieceDict = {
@@ -88,7 +97,7 @@ function clickCell(i, j){
 
     if (valSelec != ' '){
         if (valDest == ' ' || validCap(valSelec, valDest)){
-            moveValid = checkMove(lastI, lastJ, i, j);
+            moveValid = checkMove(boardState, lastI, lastJ, i, j);
             if (moveValid){
                 movePiece(lastI, lastJ, i, j);
             }
@@ -105,14 +114,14 @@ function clickCell(i, j){
 };
 
 function displayMoves(x,y){
-    displayMoveArray = getMoves(x,y)
+    displayMoveArray = getMoves(boardState, x, y)
     for (i=0; i<8; i++){
         for (j=0; j<8; j++){
-            if (displayMoveArray[i][j] == 1 && emptyCell(i,j)){
-                document.getElementById(ID_array[i][j]).innerHTML = '•'     
-            }
+            if (displayMoveArray[i][j] == 1 && boardState[i][j] == ' '){
+                document.getElementById(ID_array[i][j]).innerHTML = '•' 
+            }    
         }
-    }
+    }   
 }
 
 function clearMoves(){
@@ -126,53 +135,41 @@ function clearMoves(){
     }   
 }
 
-function checkMove(x1, y1, x2, y2){
-    val = boardState[x1][y1];
+function checkMove(board, x1, y1, x2, y2){
+    val = board[x1][y1];
     moveValid = false
-    if (val == 'p' || val =='P'){
-        moves = Pawn(x1, y1);
-    }
-    if (val == 'n' || val =='N'){
-        moves = Night(x1, y1);
-    }
-    if (val == 'b' || val =='B'){
-        moves = Bishop(x1, y1);
-    }
-    if (val == 'r' || val =='R'){
-        moves = Rook(x1, y1);
-    }
-    if (val == 'q' || val =='Q'){
-        moves = Queen(x1, y1);
-    }
-    if (val == 'k' || val =='K'){
-        moves = King(x1, y1);
-    }
-    if (moves[x2][y2] == 1){
+    if (displayMoveArray[x2][y2] == 1){
         moveValid = true;
     }
     return moveValid;
 };
 
-function getMoves(x, y){
-    val = boardState[x][y];
+function getMoves(board, x, y){
+    moves = pieceMoves(board, x ,y)
+    movesMod = checkChecks(x, y, moves)  
+    return movesMod
+}
+
+function pieceMoves(board, x, y){
+    val = board[x][y];
     if (val == 'p' || val =='P'){
-        moves = Pawn(x, y);
+        moves = Pawn(board, x, y);
     }
     if (val == 'n' || val =='N'){
-        moves = Night(x, y);
+        moves = Night(board, x, y);
     }
     if (val == 'b' || val =='B'){
-        moves = Bishop(x, y);
+        moves = Bishop(board, x, y);
     }
     if (val == 'r' || val =='R'){
-        moves = Rook(x, y);
+        moves = Rook(board, x, y);
     }
     if (val == 'q' || val =='Q'){
-        moves = Queen(x, y);
+        moves = Queen(board, x, y);
     }
     if (val == 'k' || val =='K'){
-        moves = King(x, y);
-    }  
+        moves = King(board, x, y);
+    } 
     return moves
 }
 
@@ -185,11 +182,11 @@ function movePiece(x1, y1, x2, y2){
     } else{
         whiteTurn = true;
     }
-    // Checks()
+    mated = checkMate()
 };
 
-function emptyCell(x, y){
-    if (boardState[x][y] == ' '){
+function emptyCell(board, x, y){
+    if (board[x][y] == ' '){
         return true
     } else {
         return false
@@ -214,7 +211,7 @@ function validCap(v1,v2){
     }
 }
 // DEFINED PIECE MOVEMENTS //
-function Pawn(x, y){
+function Pawn(board, x, y){
     let moveArray = [
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -227,44 +224,44 @@ function Pawn(x, y){
     ];
     if (val == 'p'){
         if (y+1 < 8){
-            if (emptyCell(x, y+1)){
+            if (emptyCell(board, x, y+1)){
                 moveArray[x][y+1] = 1; 
             }
         }
         if (y == 1){
-            if (emptyCell(x, y+2)){ 
+            if (emptyCell(board, x, y+2)){ 
                 moveArray[x][y+2] = 1; 
             }
         }
         if (x+1 < 8 || y+1 < 8){
-            if (!emptyCell(x+1,y+1)){
+            if (validCap(board[x][y], board[x+1][y+1])){
                 moveArray[x+1][y+1] = 1; 
             }
         }
         if (x-1 > 0 || y+1 < 8){
-            if (!emptyCell(x-1,y+1)){
+            if (validCap(board[x][y], board[x-2][y+1])){
                 moveArray[x-1][y+1] = 1; 
             }
         }
     } 
     if (val == 'P'){
         if (y-1 > 0){
-            if (emptyCell(x, y-1)){
+            if (emptyCell(board, x, y-1)){
                 moveArray[x][y-1] = 1;
             }
         }
         if (y == 6){
-            if (emptyCell(x, y-2)){
+            if (emptyCell(board, x, y-2)){
                 moveArray[x][y-2] = 1; 
             }
         }
         if (x+1 < 8 && y-1 > 0){
-            if (!emptyCell(x+1,y-1)){
+            if (validCap(board[x][y], board[x+1][y-1])){
                 moveArray[x+1][y-1] = 1; 
             }
         }   
         if (x-1 > 0 && y-1 > 0){
-            if (!emptyCell(x-1,y-1)){
+            if (validCap(board[x][y], board[x-1][y-1])){
                 moveArray[x-1][y-1] = 1; 
             }
         }
@@ -272,7 +269,7 @@ function Pawn(x, y){
     return moveArray;
 }
 
-function Night(x, y){
+function Night(board, x, y){
     let moveArray = [
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -284,33 +281,49 @@ function Night(x, y){
         [0, 0, 0, 0, 0, 0, 0, 0]
     ];
     if (x+1<8 && y+2<8){
+        if (validCap(board[x][y], board[x+1][y+2]) || emptyCell(board, x+1, y+2)){
         moveArray[x+1][y+2]=1;
+        }
     }
     if (x+1<8 && y-2>-1){
+        if (validCap(board[x][y], board[x+1][y-2]) || emptyCell(board, x+1, y-2)){
         moveArray[x+1][y-2]=1;
+        }
     }
     if (x-1>-1 && y+2<8){
+        if (validCap(board[x][y], board[x-1][y+2]) || emptyCell(board, x-1, y+2)){
         moveArray[x-1][y+2]=1;
+        }
     }
     if (x-1>-1 && y-2>-1){
+        if (validCap(board[x][y], board[x-1][y-2]) || emptyCell(board, x-1, y-2)){
         moveArray[x-1][y-2]=1;
+        }
     }
     if (x+2<8 && y+1<8){
+        if (validCap(board[x][y], board[x+2][y+1]) || emptyCell(board, x+2, y+1)){
         moveArray[x+2][y+1]=1;
+        }
     }
     if (x+2<8 && y-1>-1){
+        if (validCap(board[x][y], board[x+2][y-1]) || emptyCell(board, x+2, y-1)){
         moveArray[x+2][y-1]=1;
+        }
     }
     if (x-2>-1 && y+1<8){
+        if (validCap(board[x][y], board[x-2][y+1]) || emptyCell(board, x-2, y+1)){
         moveArray[x-2][y+1]=1;
+        }
     }
     if (x-2>-1 && y-1>-1){
+        if (validCap(board[x][y], board[x-2][y-1]) || emptyCell(board, x-2, y-1)){
         moveArray[x-2][y-1]=1;
+        }
     }
     return moveArray;
 }
 
-function Bishop(x, y){
+function Bishop(board, x, y){
     let moveArray = [
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -328,9 +341,13 @@ function Bishop(x, y){
         if (X>7 || Y>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -340,9 +357,13 @@ function Bishop(x, y){
         if (X<0 || Y<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -352,9 +373,13 @@ function Bishop(x, y){
         if (X>7 || Y<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -364,16 +389,20 @@ function Bishop(x, y){
         if (X<0 || Y>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
     return moveArray;
 }
 
-function Rook(x, y){
+function Rook(board, x, y){
     let moveArray = [
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -391,9 +420,13 @@ function Rook(x, y){
         if (X>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -403,9 +436,13 @@ function Rook(x, y){
         if (X<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -415,9 +452,13 @@ function Rook(x, y){
         if (Y<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -427,16 +468,20 @@ function Rook(x, y){
         if (Y>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
     return moveArray;
 }
 
-function Queen(x, y){
+function Queen(board, x, y){
     let moveArray = [
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -453,9 +498,13 @@ function Queen(x, y){
         if (X>7 || Y>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -465,9 +514,13 @@ function Queen(x, y){
         if (X<0 || Y<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -477,9 +530,13 @@ function Queen(x, y){
         if (X>7 || Y<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -489,9 +546,13 @@ function Queen(x, y){
         if (X<0 || Y>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -501,9 +562,13 @@ function Queen(x, y){
         if (X>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
@@ -513,10 +578,15 @@ function Queen(x, y){
         if (X<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
+        moveArray[X][Y] = 1
     }
     for (i=1; i<8; i++){
         X = x;
@@ -524,29 +594,36 @@ function Queen(x, y){
         if (Y<0){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
-    moveArray[X][Y] = 1
     for (i=1; i<8; i++){
         X = x;
         Y = y+i;
         if (Y>7){
             break
         }
-        if (!emptyCell(X,Y)){
-            moveArray[X][Y] = 1            
-            break
+        if (board[X][Y] != ' '){
+            if (validCap(board[x][y], board[X][Y])){
+                moveArray[X][Y] = 1            
+                break
+            } else{
+                break
+            }
         }
         moveArray[X][Y] = 1
     }
     return moveArray;
 }
 
-function King(x, y){
+function King(board, x, y){
     let moveArray = [
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -557,99 +634,234 @@ function King(x, y){
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0]
     ];
-    if (!emptyCell(x-1,y)){
-        moveArray[x-1,y] = 1
+    if (x-1>-1){
+        if (emptyCell(board, x-1,y)){
+            moveArray[x-1][y] = 1
+        }
+        else if (validCap(board[x][y], board[x-1][y])){
+            moveArray[x-1][y] = 1
+        }
     }
-    if (!emptyCell(x-1,y+1)){
-        moveArray[x-1,y+1] = 1
+    if (x-1>-1 && y+1<8){
+        if (emptyCell(board, x-1,y+1)){
+            moveArray[x-1][y+1] = 1
+        }
+        else if (validCap(board[x][y], board[x-1][y+1])){
+            moveArray[x-1][y+1] = 1
+        }
     }
-    if (!emptyCell(x,y+1)){
-        moveArray[x,y+1] = 1
+    if (x+1<8){
+        if (emptyCell(board, x,y+1)){
+            moveArray[x][y+1] = 1
+        }
+        else if (validCap(board[x][y], board[x][y+1])){
+            moveArray[x][y+1] = 1
+        }
     }
-    if (!emptyCell(x+1,y+1)){
-        moveArray[x+1,y+1] = 1
+    if (x+1<8 && y+1<8){
+        if (emptyCell(board, x+1,y+1)){
+            moveArray[x+1][y+1] = 1
+        }
+        else if (validCap(board[x][y], board[x+1][y+1])){
+            moveArray[x+1][y+1] = 1
+        }
     }
-    if (!emptyCell(x+1,y)){
-        moveArray[x+1,y] = 1
+    if (x+1<8){
+        if (emptyCell(board, x+1,y)){
+            moveArray[x+1][y] = 1
+        }
+        else if (validCap(board[x][y], board[x+1][y])){
+            moveArray[x+1][y] = 1
+        }
     }
-    if (!emptyCell(x+1,y-1)){
-        moveArray[x+1,y-1] = 1
+    if (x+1<8 && y-1>-1){
+        if (emptyCell(board, x+1,y-1)){
+            moveArray[x+1][y-1] = 1
+        }
+        else if (validCap(board[x][y], board[x+1][y-1])){
+            moveArray[x+1][y-1] = 1
+        }
     }
-    if (!emptyCell(x,y-1)){
-        moveArray[x,y-1] = 1
+    if (y-1>-1){
+        if (emptyCell(board, x,y-1)){
+            moveArray[x][y-1] = 1
+        }
+        else if (validCap(board[x][y], board[x][y-1])){
+            moveArray[x][y-1] = 1
+        }
     }
-    if (!emptyCell(x-1,y-1)){
-        moveArray[x-1,y-1] = 1
+    if (x-1>-1 && y-1>-1){
+        if (emptyCell(board, x-1,y-1)){
+            moveArray[x-1][y-1] = 1
+        }
+        else if (validCap(board[x][y], board[x-1][y-1])){
+            moveArray[x-1][y-1] = 1
+        }
     }
     return moveArray;
 }
 
-function Checks(){
-    // White 
-    let movesTot = [
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0]
-    ];    
-    // Calculate all moveArrays and combine
-    if (whiteTurn){
-        for (I=0; I<8; I++){
-            for (J=0; J<8; J++){
-                val = boardState[I][J]
-                // SkIp cell if space or if not black
-                if (val == ' '){
-                    continue
-                }
-                // Store King coord for later
-                if (val == 'k'){
-                    kingCoord = [I,J]
-                }
-                if (pieceColour(val) != 'B'){
-                    continue
-                }
-                moves = getMoves(I, J)
-                movesTot += moves
-            }
-        }
-    }
-    // Set movesTot to be binary
-    for (i=0; i<8; i++){
-        for (j=0; j<8; j++){
-            if (movesTot[i][j] > 0){
-                movesTot[i][j] = 1
-            } else{
-                movesTot[i][j] = 0
-            }
-        }
-    }
-    // Check for valid king moves and potential check mate
-    kingMoves = getMoves(kingCoord[0], kingCoord[1])
-    kingMoves[kingCoord[0]][kingCoord[1]] = 1
-    kingMoves -= movesTot
-
-    // Set kingMoves to be binary
-    for (i=0; i<8; i++){
-        for (j=0; j<8; j++){
-            if (kingMoves[i][j] > 0){
-                kingMoves[i][j] = 1
-            } else{
-                kingMoves[i][j] = 0
-            }
-        }
-    }    
-    if (kingMoves.reduce((a, b => a+b, 0) == 0)){
-        console.log('CHECK M8, BLACK WINS!')
-        return 'B'
-    }
-
-    // Look for checked spaces - restrict movement
-
+function testMove(board_in, x, y, mx, my){
+    // board_out = board_in
+    val_in = board_in[x][y]
+    board_out = JSON.parse(JSON.stringify(board_in));   
+    board_out[mx][my] = val_in
+    board_out[x][y] = ' '
+    return board_out
 }
 
+function getMoveListKing(moveArray){
+    moveListi = []
+    moveListj = []
+    // Get list of moves and king coord
+    for (i=0; i<8; i++){
+        for (j=0; j<8; j++){
+            if (moveArray[i][j] == 1){
+                moveListi.push(i)
+                moveListj.push(j)
+            }
+            // Store King coord for later
+            if (whiteTurn){
+                if (boardState[i][j] == 'k'){
+                    kingCoord = [i,j]
+                }
+            } else{
+                if (boardState[i][j] == 'K'){
+                    kingCoord = [i,j]
+                }
+            }
+        }
+    }
+    return moveListi, moveListj, kingCoord
+}
+
+function checkChecks(x, y, moveArray){
+    moveListi, moveListj, kingCoord = getMoveListKing(moveArray)
+    // WHITE'S TURN
+    if (whiteTurn){
+        for (m=0; m<moveListi.length; m++){
+            mi = moveListi[m]
+            mj = moveListj[m]
+            holdState = testMove(boardState, x, y, mi, mj)
+            for (I=0; I<8; I++){
+                for (J=0; J<8; J++){
+                    val_hold = holdState[I][J]
+                    // Skip cell if not black piece
+                    if (pieceColour(val_hold) != 'B'){
+                        continue
+                    }
+                    moves_hold = pieceMoves(holdState, I, J)
+                    if (boardState[x][y] == 'k'){
+                        if (moves_hold[mi][mj] == 1){
+                            moveArray[mi][mj] = 0
+                        }
+                        continue
+                    }
+                    if (moves_hold[kingCoord[0]][kingCoord[1]] == 1){
+                        moveArray[mi][mj] = 0
+                        continue
+                    }
+                }
+            }
+        }
+    // BLACK'S TURN
+    } else{
+        for (m=0; m<moveListi.length; m++){
+            mi = moveListi[m]
+            mj = moveListj[m]
+            holdState = testMove(boardState, x, y, mi, mj)
+            for (I=0; I<8; I++){
+                for (J=0; J<8; J++){
+                    val_hold = holdState[I][J]
+                    // Skip cell if not white piece
+                    if (pieceColour(val_hold) != 'W'){
+                        continue
+                    }
+                    moves_hold = pieceMoves(holdState, I, J)
+                    if (boardState[x][y] == 'K'){
+                        if (moves_hold[mi][mj] == 1){
+                            moveArray[mi][mj] = 0
+                        }
+                        continue
+                    }
+                    if (moves_hold[kingCoord[0]][kingCoord[1]] == 1){
+                        moveArray[mi][mj] = 0
+                        continue
+                    }
+                }
+            }
+        }
+    }
+    
+    return moveArray
+}
+
+function checkMate(){
+    kingCheck = false
+    // WHITES TURN
+    // Check for any legal move
+    if (whiteTurn){
+        for (X_ck=0; X_ck<8; X_ck++){
+            for (Y_ck=0; Y_ck<8; Y_ck++){
+                // Skip cell if space
+                if (pieceColour(boardState[X_ck][Y_ck]) == ' '){
+                    continue
+                }
+                // if White, check for a legal move
+                if (pieceColour(boardState[X_ck][Y_ck]) == 'W'){
+                    moves = getMoves(boardState, X_ck, Y_ck)
+                    moveListi, moveListj, kingCoord  = getMoveListKing(moves)
+                    // If a legal move is found, no checkmate - return 'N'
+                    if (moveListi.length == 0){
+                        continue
+                    }
+                    return 'N'
+                    
+                }
+                // if Black, check if king is in check
+                if (pieceColour(boardState[X_ck][Y_ck]) == 'B'){
+                    moves = pieceMoves(boardState, X_ck, Y_ck)
+                    if (moves[kingCoord[0]][kingCoord[1]] == 1){
+                        kingCheck = true
+                    }
+                }
+            }
+        }
+    }
+    else {
+        for (X_ck=0; X_ck<8; X_ck++){
+            for (Y_ck=0; Y_ck<8; Y_ck++){
+                // Skip cell if space
+                if (pieceColour(boardState[X_ck][Y_ck]) == ' '){
+                    continue
+                }
+                // if White, check for a legal move
+                if (pieceColour(boardState[X_ck][Y_ck]) == 'B'){
+                    moves = getMoves(boardState, X_ck, Y_ck)
+                    moveListi, moveListj, kingCoord  = getMoveListKing(moves)
+                    // If a legal move is found, no checkmate - return 'N'
+                    if (moveListi.length == 0){
+                        continue
+                    }
+                    return 'N'
+                    
+                }
+                // if Black, check if king is in check
+                if (pieceColour(boardState[X_ck][Y_ck]) == 'W'){
+                    moves = pieceMoves(boardState, X_ck, Y_ck)
+                    if (moves[kingCoord[0]][kingCoord[1]] == 1){
+                        kingCheck = true
+                    }
+                }
+            }
+        }
+    }
+    if (kingCheck){
+        console.log('Checkmate!')
+        return 'Y'
+    }
+    console.log('Stalemate lmao')
+    return 'S'
+}
 
 NewGame();
